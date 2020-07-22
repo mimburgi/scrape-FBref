@@ -100,7 +100,7 @@ replacevals<-data.frame(tag=c('Per 90 Minutes',
 for (i in 1:nrow(replacevals)){
   names(formatted)[names(players)==replacevals$tag[i]]<-
     paste0(
-      replacevals$prefix[i], 
+      replacevals$prefix[i],
       names(formatted)[names(players)==replacevals$tag[i]]
     )
 }
@@ -114,7 +114,7 @@ formatted<-formatted %>%
 
 #a few variables are here twice, but one of the two for each are similarly redundant names
 #remove the columns with redundant names
-formatted<-formatted %>% select(-c(TklTkl, BlockBlocks, PressPress))
+formatted<-formatted %>% select(-c(TklTkl, BlockBlocks, PressPress, TklTklW))
 
 #remove rows that are just variable names
 formatted<-subset(formatted, Player!='Player')
@@ -162,6 +162,8 @@ colnames(formatted)<-str_replace(colnames(formatted), " ", "")
 #remove the colon in column names
 colnames(formatted)<-str_replace(colnames(formatted), ":", "")
 
+#remove Rk which is a nonsense variable
+colnames<-select(formatted, -Rk)
 
 ## save out ####
 write.csv(formatted,outfile)
