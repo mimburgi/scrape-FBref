@@ -6,13 +6,10 @@ prevYrs=NULL #null for this season's data, 1 for last season's, 2 for two season
 outfile='top5players-upd.csv'
 
 #df with page names and matching table names
-leaguevals<-data.frame(leaguename=c('Bundesliga', 'Premier-League'
-                                    #,'Serie-A', 'La-Liga', 'Ligue-1'
-                                    ),
-                       leaguenumber=c('20', '9'
-                                      #,'11', '12', '13'
-                                      )
-)
+leaguevals<-data.frame(leaguename=c('Bundesliga', 'Premier-League',
+                                    'Serie-A', 'La-Liga', 'Ligue-1'),
+                       leaguenumber=c('20', '9',
+                                      '11', '12', '13'))
 
 ################
 ### do work ####
@@ -60,14 +57,15 @@ for (league in 1:nrow(leaguevals)){#league is the row index number within the le
     players<-thisLeague
   }
   else{ #after the first one, add to players
-    players<-rbind(players, thisLeague[-c(1,2),]) #remove the first two rows which are variable names
+    players<-rbind(players, thisLeague[-1,]) #remove the first row which is variable names
   }
   
 }#end league loop
 
 
 
-write.csv(players, 'top5playersraw.csv')
+#write.csv(players, 'top5playersraw.csv')
+players<-read.csv('top5playersraw.csv')
 
 
 ## reformat to make the table easier to use ####
@@ -79,6 +77,15 @@ library(tidyverse)
 
 #rename a bunch of columns
 
+library(tidyverse)
+
+#make a new df called formatted that we'll manipulate 
+#remove the first row values and replace the column names with those values
+formatted<-players[-1,] 
+colnames(formatted)<-players[1,] 
+
+#importantly, we still have the original column names stored in players
+
 #df containing string for marker in top column of players colnames and addon for those columns
 replacevals<-data.frame(tag=c('Per 90 Minutes',  
                               'Total', 'Short', 'Medium', 'Long', 
@@ -86,7 +93,7 @@ replacevals<-data.frame(tag=c('Per 90 Minutes',
                               'SCA Types', 'GCA Types', 'Tackles', 'Vs Dribbles',
                               'Pressures', 'Blocks', 'Touches', 'Dribbles', 'Carries', 'Aerial Duels'),
                         prefix=c('per90', 
-                                 'Pass', 'SPass', 'MPass', 'LPass',
+                                 'Pass', 'ShPass', 'MedPass', 'LngPass',
                                  'Pass','CK', 'Pass', 'Pass', 'Pass',
                                  'SCA', 'GCA', 'Tkl', 'vDrib',
                                  'Press','Block', 'Touches','Drib', 'Carry', 'Aer'))
@@ -96,7 +103,7 @@ for (i in 1:nrow(replacevals)){
     paste0(
       replacevals$prefix[i], 
       names(formatted)[names(players)==replacevals$tag[i]]
-      )
+    )
 }
 
 #remove duplicate columns
@@ -104,39 +111,38 @@ formatted<-formatted[,which(!duplicated(names(formatted)))] #original scraped da
 
 #change some now redundant names
 formatted<-formatted %>% 
-  rename(Press=PressPress, Blocks=BlockBlocks, Touches=TouchesTouches, Carries=CarryCarries)
+  rename(Carries=CarryCarries, Touches=TouchesTouches)
 
-#remove spaces in column names beacuse I don't like that
-colnames(formatted)<-str_replace(colnames(formatted), " ", "")
-
-#remove per 90s (we want to convert everything to per 90)
-formatted<-subset(formatted, select=which(!grepl( "90" , names(formatted))))
-
-#remove comma in Min column so we can convert it to a number
-formatted$Min<-str_replace(formatted$Min, ",", "")
+#a few variables are here twice, but one of the two for each are similarly redundant names
+#remove the columns with redundant names
+formatted<-formatted %>% select(-c(TklTkl, BlockBlocks, PressPress))
 
 #remove rows that are just variable names
 formatted<-subset(formatted, Player!='Player')
 
-#convert everything to numeric (other than actual character columns)
-numbers<-formatted %>% mutate_all(as.numeric) %>% select_if(~ any(!is.na(.))) #numbers
+#remove comma in Min column so we can convert it to a number
+formatted$Min<-str_replace(formatted$Min, ",", "")
+
+#separate number variables from character variables
+#at this point, anything that returns NA from as.numeric is not a true number
+#we'll apply as.numeric to everything, then whatever is not an NA is a true number
+numbers<-formatted %>% mutate_all(as.numeric) %>% select_if(~ any(!is.na(.)))
+
+#use the number df to identify character variables
+#anything not a number is a character
 chars<-formatted %>% select(!any_of(names(numbers))) #chars
-formatted<-cbind(chars, numbers) #merge them back
 
+#merge them back now that the numbers are numeric type
+formatted<-cbind(chars, numbers) 
 
-#remove per 90 columns (we'll convert everything to per 90)
+#remove things that are already per 90 (we want to convert everything to per 90)
 formatted<-subset(formatted, select=which(!grepl( "90" , names(formatted))))
 
+#identify which variables should not be converted to per 90, including character variables
+dontconvert<-which(grepl(pattern = 'Player|Pos|Matches|Squad|League|/Sh|/SoT|%|Min|MP|Starts|Poss|Age|Born|Nation', names(formatted)))
 
-#remove problem players with very few Min played
-formatted<-subset(formatted, Min >= 500)
 
-#change MP to matches played to make it easier to distinguish from MPass
-formatted<-formatted %>% rename(MatchesPlayed=MP)
-
-#convert everything in formatted to per 90s
-dontconvert<-which(grepl(pattern = 'Player|Pos|Matches|Squad|League|/Sh|/SoT|%|Min|Starts|Poss|Age|Born|Nation', names(formatted)))
-
+#convert everything else to per 90s
 for (row in 1:nrow(formatted)){
   formatted[row,-dontconvert]<-formatted[row,-dontconvert]/(formatted$Min[row]/90)
 }
@@ -150,6 +156,12 @@ colnames(formatted)<-str_replace(colnames(formatted), "%", "perc")
 
 #remove / sign in some column names
 colnames(formatted)<-str_replace(colnames(formatted), "/", "per")
+
+#remove spaces in column names
+colnames(formatted)<-str_replace(colnames(formatted), " ", "")
+
+#remove the colon in column names
+colnames(formatted)<-str_replace(colnames(formatted), ":", "")
 
 
 ## save out ####

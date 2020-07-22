@@ -31,7 +31,7 @@ getFBrefStats = function(url,id, numYearsBack=NULL){
       print("slept 5 seconds")
       next
     }, finally = {
-      remDr$screenshot(display = TRUE) #This will take a screenshot and display it in the RStudio viewer
+      #remDr$screenshot(display = TRUE) #This will take a screenshot and display it in the RStudio viewer
       break
     })
   }
