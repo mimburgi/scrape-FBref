@@ -63,9 +63,8 @@ for (league in 1:nrow(leaguevals)){#league is the row index number within the le
 }#end league loop
 
 
-
+#uncomment to save the raw data in case of crashes
 #write.csv(players, 'top5playersraw.csv')
-players<-read.csv('top5playersraw.csv')
 
 
 ## reformat to make the table easier to use ####
