@@ -1,9 +1,8 @@
-#remember to open the docker first!!!
 source('FBref-scraper.R')
 
 prevYrs=NULL #null for this season's data, 1 for last season's, 2 for two seasons ago, etc.
 
-outfile='top5players-upd.csv'
+outfile='top5players-curr.csv'
 
 #df with page names and matching table names
 leaguevals<-data.frame(leaguename=c('Bundesliga', 'Premier-League',
